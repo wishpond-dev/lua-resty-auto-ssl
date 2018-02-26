@@ -24,7 +24,7 @@ function _M.delete_challenge(self, domain, path)
 end
 
 function _M.used_cert(self, domain)
-  local ok, err = self.adapter:set(domain .. ":active", 1, {
+  local _, err = self.adapter:set(domain .. ":active", 1, {
     exptime = 180 * 24 * 60 * 60 -- 180 days
   })
   if err then
@@ -92,7 +92,8 @@ function _M.all_cert_domains(self)
   for _, key in ipairs(keys) do
     local domain = ngx.re.sub(key, ":latest$", "", "jo")
 
-    local active, err = self.adapter:get(domain .. ":active")
+    local active
+    active, err = self.adapter:get(domain .. ":active")
     if err then
       return nil, err
     end

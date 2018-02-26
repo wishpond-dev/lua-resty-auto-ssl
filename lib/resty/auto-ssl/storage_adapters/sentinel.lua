@@ -37,7 +37,7 @@ function _M.new(auto_ssl_instance)
   if not options["sentinels"] and options["sentinel_hosts"] then
     local sentinels = {}
     local hosts = strsplit(",", options["sentinel_hosts"])
-    for i, host in ipairs(hosts) do
+    for _, host in ipairs(hosts) do
       table.insert(sentinels, { host = host, port = "26379" })
     end
     options["sentinels"] = sentinels
@@ -72,7 +72,8 @@ function _M.get_connection(self)
 
   local rc = require("resty.redis.connector").new(options)
 
-  local connection, err = rc:connect(host)
+  local err
+  connection, err = rc:connect(host)
 
   if not connection then
     ngx.log(ngx.ERR, "sentinel.get_connection: failed to get connection ", err)
@@ -144,8 +145,10 @@ function _M.keys_with_suffix(self, suffix)
   -- Use scan for non-blocking cursor-based key scanning
   local keys = {}
   local cursor = "0"
+  local err
+  local res
   repeat
-    local res, err = connection:scan(cursor, "match", "*" .. suffix)
+    res, err = connection:scan(cursor, "match", "*" .. suffix)
     if not res then
       ngx.say(err)
       break

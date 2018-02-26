@@ -103,7 +103,7 @@ end
 
 local function log_cert_used(auto_ssl_instance, domain)
   local storage = auto_ssl_instance.storage
-  local used, err = storage:used_cert(domain)
+  local _, err = storage:used_cert(domain)
   if err then
     ngx.log(ngx.ERR, "auto-ssl: flagging certificate as used failed: ", err)
   end

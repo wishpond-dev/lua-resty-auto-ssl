@@ -112,7 +112,24 @@ function _M.keys_with_suffix(self, suffix)
     return false, connection_err
   end
 
-  local keys, err = connection:keys(prefixed_key(self, "*" .. suffix))
+  -- Use scan for non-blocking cursor-based key scanning
+  local keys = {}
+  local cursor = "0"
+  local err
+  local res
+  repeat
+    res, err = connection:scan(cursor, "match", "*" .. suffix)
+    if not res then
+      ngx.say(err)
+      break
+    end
+
+    local data
+    cursor, data = unpack(res)
+    for _, key in ipairs(data) do
+      table.insert(keys, key)
+    end
+  until cursor == "0"
 
   if keys and self.options["prefix"] then
     local unprefixed_keys = {}

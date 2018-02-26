@@ -59,7 +59,9 @@ function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
   -- Store the cert with the current timestamp, so the old certs are preserved
   -- in case something goes wrong.
   local time = ngx.now() * 1000
-  self.adapter:set(domain .. ":" .. time, string)
+  self.adapter:set(domain .. ":" .. time, string, {
+    exptime = 30 * 24 * 60 * 60 -- 30 days
+  })
 
   -- Store the cert under the "latest" alias, which is what this app will use.
   return self.adapter:set(domain .. ":latest", string)

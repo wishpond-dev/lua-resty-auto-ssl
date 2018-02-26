@@ -23,6 +23,17 @@ function _M.delete_challenge(self, domain, path)
   return self.adapter:delete(domain .. ":challenge:" .. path)
 end
 
+function _M.used_cert(self, domain)
+  local ok, err = self.adapter:set(domain .. ":active", 1, {
+    exptime = 180 * 24 * 60 * 60 -- 180 days
+  })
+  if err then
+    return nil, err
+  end
+
+  return true
+end
+
 function _M.get_cert(self, domain)
   local json, err = self.adapter:get(domain .. ":latest")
   if err then
@@ -64,7 +75,11 @@ function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
   })
 
   -- Store the cert under the "latest" alias, which is what this app will use.
-  return self.adapter:set(domain .. ":latest", string)
+  --
+  -- Set an expiry so that it will be removed if not renewed.
+  return self.adapter:set(domain .. ":latest", string, {
+    exptime = 85 * 24 * 60 * 60 -- 85 days
+  })
 end
 
 function _M.all_cert_domains(self)
@@ -76,7 +91,16 @@ function _M.all_cert_domains(self)
   local domains = {}
   for _, key in ipairs(keys) do
     local domain = ngx.re.sub(key, ":latest$", "", "jo")
-    table.insert(domains, domain)
+
+    local active, err = self.adapter:get(domain .. ":active")
+    if err then
+      return nil, err
+    end
+
+    -- Only renew active domains
+    if active == "1" then
+      table.insert(domains, domain)
+    end
   end
 
   return domains

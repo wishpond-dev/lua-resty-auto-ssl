@@ -23,15 +23,24 @@ function _M.delete_challenge(self, domain, path)
   return self.adapter:delete(domain .. ":challenge:" .. path)
 end
 
-function _M.used_cert(self, domain)
-  local _, err = self.adapter:set(domain .. ":active", 1, {
-    exptime = 180 * 24 * 60 * 60 -- 180 days
+function _M.set_active(self, domain)
+  local _, err = self.adapter:set(domain .. ":active", "1", {
+    exptime = 120 * 24 * 60 * 60 -- 110 days
   })
   if err then
     return nil, err
   end
 
   return true
+end
+
+function _M.get_active(self, domain)
+  local active, err = self.adapter:get(domain .. ":active")
+  if err then
+    return nil, err
+  end
+
+  return active == "1"
 end
 
 function _M.get_cert(self, domain)
@@ -82,6 +91,20 @@ function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
   })
 end
 
+function _M.delete_cert(self, domain)
+  local _, err = self.adapter:delete(domain .. ":latest")
+  if err then
+    return nil, err
+  end
+
+  _, err = self.adapter:delete(domain .. ":active")
+  if err then
+    return nil, err
+  end
+
+  return true
+end
+
 function _M.all_cert_domains(self)
   local keys, err = self.adapter:keys_with_suffix(":latest")
   if err then
@@ -91,17 +114,7 @@ function _M.all_cert_domains(self)
   local domains = {}
   for _, key in ipairs(keys) do
     local domain = ngx.re.sub(key, ":latest$", "", "jo")
-
-    local active
-    active, err = self.adapter:get(domain .. ":active")
-    if err then
-      return nil, err
-    end
-
-    -- Only renew active domains
-    if active == "1" then
-      table.insert(domains, domain)
-    end
+    table.insert(domains, domain)
   end
 
   return domains

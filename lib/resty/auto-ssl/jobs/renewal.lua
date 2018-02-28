@@ -90,6 +90,20 @@ local function renew_check_cert(auto_ssl_instance, storage, domain)
     end
   end
 
+  -- Query the storage to see if the cert is still actively being used. If not
+  -- delete it instead of renewing.
+  local active, active_err = storage:get_active(domain)
+  if active_err then
+    ngx.log(ngx.ERR, "auto-ssl: error getting cert activity: ", active_err, " domain: ", domain)
+    return
+  end
+
+  if active == false then
+    storage:delete_cert(domain)
+    ngx.log(ngx.NOTICE, "auto-ssl: cert no longer used and deleted: ", domain)
+    return
+  end
+
   if not cert["fullchain_pem"] then
     ngx.log(ngx.ERR, "auto-ssl: attempting to renew certificate for domain without certificates in storage: ", domain)
     renew_check_cert_unlock(domain, storage, local_lock, distributed_lock_value)

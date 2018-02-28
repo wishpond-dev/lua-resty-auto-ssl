@@ -101,11 +101,11 @@ local function issue_cert(auto_ssl_instance, storage, domain)
   return cert, err
 end
 
-local function log_cert_used(auto_ssl_instance, domain)
+local function set_cert_active(auto_ssl_instance, domain)
   local storage = auto_ssl_instance.storage
-  local _, err = storage:used_cert(domain)
+  local _, err = storage:set_active(domain)
   if err then
-    ngx.log(ngx.ERR, "auto-ssl: flagging certificate as used failed: ", err)
+    ngx.log(ngx.ERR, "auto-ssl: setting: ", domain, " as active failed: ", err)
   end
   return true
 end
@@ -115,7 +115,7 @@ local function get_cert_der(auto_ssl_instance, domain, ssl_options)
   local fullchain_der = ngx.shared.auto_ssl:get("domain:fullchain_der:" .. domain)
   local privkey_der = ngx.shared.auto_ssl:get("domain:privkey_der:" .. domain)
   if fullchain_der and privkey_der then
-    log_cert_used(auto_ssl_instance, domain)
+    set_cert_active(auto_ssl_instance, domain)
 
     return {
       fullchain_der = fullchain_der,
@@ -146,7 +146,7 @@ local function get_cert_der(auto_ssl_instance, domain, ssl_options)
   end
 
   if cert and cert["fullchain_pem"] and cert["privkey_pem"] then
-    log_cert_used(auto_ssl_instance, domain)
+    set_cert_active(auto_ssl_instance, domain)
 
     local cert_der = convert_to_der_and_cache(domain, cert)
     cert_der["newly_issued"] = false
@@ -157,7 +157,7 @@ local function get_cert_der(auto_ssl_instance, domain, ssl_options)
   if not ssl_options or ssl_options["generate_certs"] ~= false then
     cert = issue_cert(auto_ssl_instance, storage, domain)
     if cert and cert["fullchain_pem"] and cert["privkey_pem"] then
-      log_cert_used(auto_ssl_instance, domain)
+      set_cert_active(auto_ssl_instance, domain)
 
       local cert_der = convert_to_der_and_cache(domain, cert)
       cert_der["newly_issued"] = true

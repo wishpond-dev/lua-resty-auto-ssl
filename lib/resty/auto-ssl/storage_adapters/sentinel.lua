@@ -43,15 +43,12 @@ function _M.new(auto_ssl_instance)
     options["sentinels"] = sentinels
   end
 
-  ngx.log(ngx.ERR, require "cjson".encode(options))
-
   return setmetatable({ options = options }, { __index = _M })
 end
 
 function _M.get_connection(self)
   local connection = ngx.ctx.auto_ssl_redis_connection
   if connection then
-    ngx.log(ngx.ERR, "sentinel.get_connection: returning existing connection")
     return connection
   end
 
@@ -67,20 +64,14 @@ function _M.get_connection(self)
     db          = self.options["db"]
   }
 
-  ngx.log(ngx.ERR, "options: ", require "cjson".encode(options))
-  ngx.log(ngx.ERR, "host: ", require "cjson".encode(host))
-
   local rc = require("resty.redis.connector").new(options)
 
   local err
   connection, err = rc:connect(host)
 
   if not connection then
-    ngx.log(ngx.ERR, "sentinel.get_connection: failed to get connection ", err)
     return false, err
   end
-
-  ngx.log(ngx.ERR, "sentinel.get_connection: storing connection")
 
   ngx.ctx.auto_ssl_redis_connection = connection
   return connection
@@ -90,8 +81,6 @@ function _M.setup()
 end
 
 function _M.get(self, key)
-  ngx.log(ngx.ERR, "sentinel.get: ", key)
-
   local connection, connection_err = self:get_connection()
   if connection_err then
     return nil, connection_err
@@ -106,8 +95,6 @@ function _M.get(self, key)
 end
 
 function _M.set(self, key, value, options)
-  ngx.log(ngx.ERR, "sentinel.set: ", key, " value: ", value, " options: ", require "cjson".encode(options))
-
   local connection, connection_err = self:get_connection()
   if connection_err then
     return false, connection_err

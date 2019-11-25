@@ -70,7 +70,7 @@ function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
     fullchain_pem = fullchain_pem,
     privkey_pem = privkey_pem,
     cert_pem = cert_pem,
-    expiry = expiry,
+    expiry = tonumber(expiry),
   })
   if err then
     return nil, err
@@ -103,6 +103,10 @@ function _M.delete_cert(self, domain)
   end
 
   return true
+end
+
+function _M.delete_cert(self, domain)
+  return self.adapter:delete(domain .. ":latest")
 end
 
 function _M.all_cert_domains(self)
